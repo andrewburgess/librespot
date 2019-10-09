@@ -37,6 +37,14 @@ impl Credentials {
         }
     }
 
+    pub fn with_token(username: String, token: String) -> Credentials {
+        Credentials {
+            username: username,
+            auth_type: AuthenticationType::AUTHENTICATION_SPOTIFY_TOKEN,
+            auth_data: token.into_bytes(),
+        }
+    }
+
     pub fn with_blob(username: String, encrypted_blob: &str, device_id: &str) -> Credentials {
         fn read_u8<R: Read>(stream: &mut R) -> io::Result<u8> {
             let mut data = [0u8];
