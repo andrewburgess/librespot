@@ -198,3 +198,13 @@ pub fn get_credentials<F: FnOnce(&String) -> String>(
         (None, _, None) => None,
     }
 }
+
+pub fn get_credentials_with_token(
+    username: Option<String>,
+    access_token: Option<String>,
+) -> Option<Credentials> {
+    match (username, access_token) {
+        (Some(username), Some(access_token)) => Some(Credentials::with_token(username, access_token)),
+        (_, _) => None,
+    }
+}

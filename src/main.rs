@@ -26,7 +26,7 @@ use tokio_core::reactor::{Core, Handle};
 use tokio_io::IoStream;
 use url::Url;
 
-use librespot::core::authentication::{get_credentials, Credentials};
+use librespot::core::authentication::{get_credentials, get_credentials_with_token, Credentials};
 use librespot::core::cache::Cache;
 use librespot::core::config::{ConnectConfig, DeviceType, SessionConfig};
 use librespot::core::session::Session;
@@ -127,6 +127,7 @@ fn setup(args: &[String]) -> Setup {
         .optflag("v", "verbose", "Enable verbose output")
         .optopt("u", "username", "Username to sign in with", "USERNAME")
         .optopt("p", "password", "Password", "PASSWORD")
+        .optopt("", "access_token", "Access token", "ACCESS_TOKEN")
         .optopt("", "proxy", "HTTP proxy to use when connecting", "PROXY")
         .optopt("", "ap-port", "Connect to AP with specified port. If no AP with that port are present fallback AP will be used. Available ports are usually 80, 443 and 4070", "AP_PORT")
         .optflag("", "disable-discovery", "Disable discovery mode")
@@ -259,22 +260,27 @@ fn setup(args: &[String]) -> Setup {
 
     let name = matches.opt_str("name").unwrap();
 
-    let credentials = {
-        let cached_credentials = cache.as_ref().and_then(Cache::credentials);
+    let credentials = matches
+        .opt_str("access_token")
+        .map(|access_token| {
+            get_credentials_with_token(matches.opt_str("username"), Some(access_token)).unwrap()
+        })
+        .or_else(|| {
+            let cached_credentials = cache.as_ref().and_then(Cache::credentials);
 
-        let password = |username: &String| -> String {
-            write!(stderr(), "Password for {}: ", username).unwrap();
-            stderr().flush().unwrap();
-            rpassword::read_password().unwrap()
-        };
+            let password = |username: &String| -> String {
+                write!(stderr(), "Password for {}: ", username).unwrap();
+                stderr().flush().unwrap();
+                rpassword::read_password().unwrap()
+            };
 
-        get_credentials(
-            matches.opt_str("username"),
-            matches.opt_str("password"),
-            cached_credentials,
-            password,
-        )
-    };
+            get_credentials(
+                matches.opt_str("username"),
+                matches.opt_str("password"),
+                cached_credentials,
+                password,
+            )
+        });
 
     let session_config = {
         let device_id = device_id(&name);
