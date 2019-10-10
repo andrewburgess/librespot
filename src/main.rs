@@ -51,28 +51,6 @@ fn usage(program: &str, opts: &getopts::Options) -> String {
     opts.usage(&brief)
 }
 
-fn setup_logging(verbose: bool) {
-    let mut builder = env_logger::Builder::new();
-    match env::var("RUST_LOG") {
-        Ok(config) => {
-            builder.parse_filters(&config);
-            builder.init();
-
-            if verbose {
-                warn!("`--verbose` flag overidden by `RUST_LOG` environment variable");
-            }
-        }
-        Err(_) => {
-            if verbose {
-                builder.parse_filters("mdns=info,librespot=trace");
-            } else {
-                builder.parse_filters("mdns=info,librespot=info");
-            }
-            builder.init();
-        }
-    }
-}
-
 fn list_backends() {
     println!("Available Backends : ");
     for (&(name, _), idx) in BACKENDS.iter().zip(0..) {
@@ -198,17 +176,6 @@ fn setup(args: &[String]) -> Setup {
             exit(1);
         }
     };
-
-    let verbose = matches.opt_present("verbose");
-    setup_logging(verbose);
-
-    info!(
-        "librespot {} ({}). Built on {}. Build ID: {}",
-        version::short_sha(),
-        version::commit_date(),
-        version::short_now(),
-        version::build_id()
-    );
 
     let backend_name = matches.opt_str("backend");
     if backend_name == Some("?".into()) {
