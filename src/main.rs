@@ -443,10 +443,12 @@ impl Future for Main {
                 self.player_event_channel = Some(event_channel);
 
                 progress = true;
+                println!("event:ready device_id={}", self.session_config.device_id);
             }
 
             if let Async::Ready(Some(())) = self.signal.poll().unwrap() {
                 trace!("Ctrl-C received");
+                println!("event:exit");
                 if !self.shutdown {
                     if let Some(ref spirc) = self.spirc {
                         spirc.shutdown();
@@ -473,17 +475,22 @@ impl Future for Main {
 
             if let Some(ref mut player_event_channel) = self.player_event_channel {
                 if let Async::Ready(Some(event)) = player_event_channel.poll().unwrap() {
-                    if let Some(ref program) = self.player_event_program {
-                        let child = run_program_on_events(event, program)
-                            .expect("program failed to start")
-                            .map(|status| if !status.success() {
-                                error!("child exited with status {:?}", status.code());
-                            })
-                            .map_err(|e| error!("failed to wait on child process: {}", e));
-
-                        self.handle.spawn(child);
-
+                    match event {
+                        PlayerEvent::Started { track_id } => {
+                            println!("event:started uri={}", track_id.to_base62())
+                        }
+                        PlayerEvent::Changed {
+                            old_track_id,
+                            new_track_id,
+                        } => println!(
+                            "event:changed old_uri={}&new_uri={}",
+                            old_track_id.to_base62(),
+                            new_track_id.to_base62()
+                        ),
+                        PlayerEvent::Stopped { track_id } => {
+                            println!("event:stopped uri={}", track_id.to_base62())
                     }
+                    };
                 }
             }
 
